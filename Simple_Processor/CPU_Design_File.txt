@@ -1,0 +1,414 @@
+`timescale 1ns / 1ps
+
+module simpleCPUFinal(
+    input CLK,
+    input reset,
+    input [15:0] RD,
+    output [15:0] WD,
+    output [11:0] A,
+    output RWn
+    );
+    
+    wire[15:0] IR;
+    wire IREnable, MDEnable, ACEnable, PCEnable, MAEnable, CEnable;
+    wire [2:0]ALUc;
+    wire Mux1; //IR or MD going into MA
+    wire [1:0]Mux2; //INC, IR or MD going into PC
+    wire Mux3; //PC or MA going into A  
+   
+   //calling data path and controller
+   Controller op1 ( IR[15:12],WD[15],CLK,reset, IREnable, MDEnable,ACEnable,PCEnable,MAEnable,CEnable, RWn, ALUc[2:0], Mux1, 
+                     Mux2[1:0], Mux3);
+   Datapath op2 ( CLK, reset, IREnable, MDEnable, ACEnable, PCEnable, MAEnable, CEnable,ALUc[2:0], Mux1, Mux2[1:0], Mux3, 
+                  RD[15:0], IR[15:0], WD[15:0], A[11:0] );
+                  
+endmodule
+
+//=====================================================================================
+
+module Datapath(
+    //clock and reset
+    input CLK,
+    input reset,
+    //register enables
+    input IREnable,
+    input MDEnable,
+    input ACEnable,
+    input PCEnable,
+    input MAEnable,
+    input CEnable,
+    //datapath controls
+    input [2:0]ALUc,
+    input Mux1, 
+    input [1:0]Mux2, 
+    input Mux3,
+    //rd input
+    input [15:0] RD,
+    //outputs
+    output reg [15:0] IR,
+    output reg[15:0]  WD,
+    output reg [11:0] A
+    );
+    //other registers needed
+    reg [15:0] AC,MD;
+    reg [11:0] PC,MA;
+    reg C;
+    //ALU Outputs
+    wire [15:0] y;
+    wire co; 
+            
+    initial begin 
+         //if reset is high then initialize all register values to 0
+         if( reset == 1'b1 ) begin
+            //initializing register values
+            PC[11:0] = 12'h000;
+            MA[11:0] = 12'h000;
+            MD[15:0] = 16'h0000;
+            AC[15:0] = 16'h0000;
+            IR[15:0] = 16'h0000;
+            C = 1'b0;
+            A[11:0] = 12'h000; 
+         end
+     end    
+     
+    //giving either IR or MD the value of RD
+    always @ ( posedge CLK ) begin  
+        if ( MDEnable == 1'b1 ) begin
+            #1 MD = RD;
+        end
+        else if ( IREnable == 1'b1 ) begin
+            #1 IR = RD;
+        end
+    end    
+    
+    //Call ALU... And reassigning AC and Carry when needed    
+    alu op3 ( AC, MD, ALUc, C, y, co);
+    always @ (posedge CLK ) begin  
+        if ( ACEnable == 1'b1) begin
+            #1 AC = y; //need a #1 to let y update
+        end
+        if (CEnable == 1'b1 ) begin
+             C = co;
+        end
+    end
+    
+    //Mux 1 
+    always @ ( posedge CLK ) begin  
+        if ( Mux1 == 1'b0 && MAEnable == 1) begin
+            MA = IR[11:0];
+        end
+        else if ( Mux1 == 1'b1 && MAEnable == 1 ) begin
+            MA = MD[11:0];
+        end
+    end
+    
+    //Mux 2
+    always @ ( posedge CLK ) begin  
+        if ( Mux2 == 2'b00 && PCEnable == 1) begin
+            PC = PC + 1;
+        end
+        else if ( Mux2 == 2'b01 && PCEnable == 1 ) begin
+            PC = IR[11:0];
+        end
+        else if ( Mux2 == 2'b10 && PCEnable == 1 ) begin
+            PC = MD[11:0];
+        end
+    end
+    
+    //Mux 3
+    always @ ( posedge CLK ) begin  
+        if ( Mux3 == 1'b0 ) begin
+            A = PC;
+        end
+        else if ( Mux3 == 1'b1 ) begin
+            A = MA;
+        end
+    end  
+
+    //initializing WD to value of AC
+    always @ (posedge CLK )begin
+         WD = AC;
+    end
+    
+ endmodule
+    
+
+//=====================================================================================
+
+module Controller( 
+    input [3:0]opcode,
+    input pos, //msb of accumulator
+    input CLK,
+    input reset,
+    output reg IREnable,
+    output reg MDEnable,
+    output reg ACEnable,
+    output reg PCEnable,
+    output reg MAEnable,
+    output reg CEnable,
+    output reg RWn,
+    output reg [2:0]ALUc,
+    output reg Mux1, //IR or MD going into MA
+    output reg [1:0]Mux2, //INC, IR or MD going into PC
+    output reg Mux3 //PC or MA going into A
+    );
+    
+    //Assigning a value to each state
+    parameter S00 = 5'h00, S01 = 5'h01, S02 = 5'h02, S03 = 5'h03,S04 = 5'h04,
+              S05 = 5'h05, S06 = 5'h06, S07 = 5'h07, S08 = 5'h08,S09 = 5'h09,
+              S10 = 5'h0A, S11 = 5'h0B, S12 = 5'h0C, S13 = 5'h0D,S14 = 5'h0E,
+              S15 = 5'h0F, S16 = 5'h10;
+    reg [4:0]PRState;
+    reg [4:0]NXState;
+    //Determining Outputs at each state
+    always @* begin
+        if(PRState == S00) begin
+            IREnable = 1'b1;
+            MDEnable = 1'b0;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux3 = 1'b0;
+            RWn = 1'b1;
+            end
+         else if(PRState == S01) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b0;
+            PCEnable = 1'b1;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux2[1:0] = 2'b00;
+            RWn = 1'b1;
+           end
+         else if(PRState == S02) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b1;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            ALUc[2:0] = 3'b000;
+            RWn = 1'b1;
+           end
+         else if(PRState == S03) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b1;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            ALUc = 3'b010;
+            RWn = 1'b1;
+            end
+         else if(PRState == S04) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b1;
+            CEnable = 1'b0;
+            Mux1 = 1'b0;
+            RWn = 1'b1;
+            end
+         else if(PRState == S05) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b1;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux3 = 1'b1;
+            RWn = 1'b1;
+            end  
+         else if(PRState == S06) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b0;
+            PCEnable = 1'b1;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux2[1:0] = 2'b10;
+            RWn = 1'b1;
+            end
+         else if(PRState == S07) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b0;
+            PCEnable = 1'b1;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux2[1:0] = 2'b01;
+            RWn = 1'b1;
+            end
+         else if(PRState == S08) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b1;
+            CEnable = 1'b0;
+            Mux1 = 1'b0;
+            RWn = 1'b1;
+            end
+         else if(PRState == S09) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b1;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux3 = 1'b1;
+            RWn = 1'b1;
+            end
+         else if(PRState == S10) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b1;
+            CEnable = 1'b0;
+            Mux1 = 1'b1;
+            RWn = 1'b1;
+            end  
+         else if(PRState == S11) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b1;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux3 = 1'b1;
+            ALUc = 3'b011;
+            #3 RWn = 1'b0; //need 3 time unit delay to let A update to desired address
+            end
+         else if(PRState == S12) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b1;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux3 = 1'b1;
+            RWn = 1'b1;
+            end   
+         else if(PRState == S13) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b1;
+            CEnable = 1'b0;
+            Mux1 = 1'b1;
+            RWn = 1'b1;
+            end   
+         else if(PRState == S14) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b1;
+            ACEnable = 1'b0;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            Mux3 = 1'b1;
+            RWn = 1'b1;
+            end 
+         else if(PRState == S15) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b1;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b1;
+            ALUc = 3'b001;
+            RWn = 1'b1;
+            end
+         else if(PRState == S16) begin
+            IREnable = 1'b0;
+            MDEnable = 1'b0;
+            ACEnable = 1'b1;
+            PCEnable = 1'b0;
+            MAEnable = 1'b0;
+            CEnable = 1'b0;
+            ALUc = 3'b100;
+            RWn = 1'b1;
+            end
+    end
+
+    //Determine Next State based on the Present State
+    always @ (negedge CLK or posedge reset ) begin //at the every clock pulse or reset
+        if( reset == 1'b1 ) begin
+            PRState = S00;
+        end
+        else begin
+            PRState = NXState;
+        end
+    end
+    
+    always @ ( PRState ) begin
+        case ( PRState )
+            S00 : NXState = S01;
+            S01 : if( opcode[3:1] == 3'b000) //if opcode for not was input
+                    NXState = S02; 
+                  else if ( opcode[3:1] == 3'b011 ) //if opcode for inca was input
+                    NXState = S03;
+                  else if ( opcode[3:0] == 4'b0100 && pos == 1'b0) //if opcode for jpa was input AND AC is positive AND AM=0 
+                    NXState = S07;
+                  else if ( opcode[3:0] == 4'b0101 && pos == 1'b0) //if opcode for jpa was input AND AC is positive AND AM=1
+                    NXState = S04;
+                  else if ( opcode[3:1] == 3'b010 && pos == 1'b1) //if opcode for jpa was input AND AC is negative
+                    NXState = S00;
+                  else
+                    NXState = S08;
+            S02 : NXState = S00;
+            S03 : NXState = S00;
+            S04 : NXState = S05;
+            S05 : NXState = S06;
+            S06 : NXState = S00;
+            S07 : NXState = S00;
+            S08 : if ( opcode[3:0] == 4'b1000 ) //if opcode for STA was input AND AM = 0 
+                    NXState = S11;
+                  else if ( opcode[3:0] == 4'b1001 ) //if opcode for STA was input AND AC is positive AND AM = 1
+                    NXState = S09;
+                  else
+                    NXState = S12; 
+            S09 : NXState = S10;
+            S10 : NXState = S11;
+            S11 : NXState = S00;
+            S12 : if ( opcode[3:0] == 4'b0010) //if AM = 0 && opcode for ADC is input
+                    NXState = S15;
+                  else if ( opcode[0] == 1'b0 && opcode[3:1] != 3'b001) //if AM = 0 && opcode for ADC isn't input
+                    NXState = S16;
+                  else //if AM = 1
+                    NXState = S13;
+            S13 : NXState = S14;
+            S14 : if ( opcode[3:0] == 4'b0010 || opcode[3:0] == 4'b0011) //opcode for ADC is input
+                    NXState = S15;
+                  else 
+                    NXState = S16;
+            S15 : NXState = S00;
+            S16 : NXState = S00;
+        endcase
+    end
+endmodule
+
+//======================================================================================
+
+module alu(
+    input wire [15:0]a,b,
+    input wire [2:0]control,
+    input wire ci,
+    output reg [15:0]y,
+    output reg co
+    );
+       
+    always @* begin
+        case(control)
+            3'b000: y =~a;  //NOTa = Not the Accumulator(Invert it)
+            3'b001: {co,y} = a+b+ci;//Add to input with carry
+            3'b010: y = (a + 1); //Increment the Accumulator
+            3'b011: y = 0; //Zeroing the Accumulator (Clearing accumulator)
+            3'b100: y = b; //Passing B (Used in loading accumulator)
+        endcase
+    end 
+endmodule

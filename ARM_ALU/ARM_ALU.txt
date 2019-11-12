@@ -1,0 +1,60 @@
+/*======= Design Source Code =======*/
+`timescale 1ns / 1ps
+
+module ARM_ALU(
+    input [63:0]a,b,
+    input [3:0]alu_control,
+    output reg [63:0]y,
+    output reg zero
+    );
+       
+    always @* begin
+        case(alu_control)
+            4'b0000: y = a & b;
+            4'b0001: y = a | b;
+            4'b0010: y = a + b;
+            4'b0110: y = a - b;
+            4'b0111: y = b;
+            4'b1100: y = ~(a | b);
+        endcase
+        if ( y == 0 ) zero = 1;
+        else zero = 0;
+    end 
+endmodule
+
+/*======= Test Bench Code =======*/
+`timescale 1ns / 1ps
+
+module ARM_ALU_tb;
+    //defining inputs
+    reg [63:0] a;
+    reg [63:0] b;
+    reg [3:0] alu_control;
+    //defining outputs
+    wire [63:0] y;
+    wire zero;
+
+    //instantiate
+    ARM_ALU uut
+    (
+        .a(a),
+        .b(b),
+        .alu_control(alu_control),
+        .y(y),
+        .zero(zero)
+     );
+    
+     initial begin
+        a = 64'hF0F0F0F0F0F0F0F0; b = 64'h1234567812345678;
+        alu_control = 4'b0000;
+        #1 alu_control = 4'b0001;
+        #1 alu_control = 4'b1100;
+        #1 alu_control = 4'b0111;
+        #1 a = 8; b = 8;
+        alu_control = 4'b0010;
+        #1 alu_control = 4'b0110;
+        
+     end
+     initial #6 $finish; // The test will run for a total interval of 50 nanoseconds
+endmodule
+

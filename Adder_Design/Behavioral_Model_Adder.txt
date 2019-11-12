@@ -1,0 +1,40 @@
+/*======= Design Source Code =======*/
+`timescale 1ns / 1ps
+
+module BehavioralAdder_64bit
+(
+  input [63:0] A,
+  input [63:0] B,
+  output [63:0] SUM
+);
+    assign SUM = A + B;
+endmodule
+
+/*======= Test Bench Code =======*/
+`timescale 1ns / 1ps
+
+module bitBehavioralAdder_64bit_tb;
+  // Inputs
+  reg [63:0] A;
+  reg [63:0] B;
+
+  // Outputs
+  wire [63:0] SUM;
+  
+  // Instantiate
+  BehavioralAdder_64bit uut
+  (
+    .A(A),
+    .B(B),
+    .SUM(SUM)
+  );
+
+    initial begin
+        //Setting Values For A and B
+        A= 25; B=43;
+        #25 
+        //setting new values for A and B
+       A=74839; B=28476;
+    end
+   initial #50 $finish; // The test will run for a total interval of 50 nanoseconds
+endmodule

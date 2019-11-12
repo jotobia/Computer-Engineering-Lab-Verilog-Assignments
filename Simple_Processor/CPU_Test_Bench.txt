@@ -1,0 +1,53 @@
+`timescale 1ns / 1ps
+
+
+module simpleCPUFinal_tb(
+
+    );
+    reg [15:0] memory[0:10]; //delaring 2D array for memory
+    //inputs to processor   
+    reg [15:0] RD;
+    reg CLK = 0;
+    reg reset = 1;
+    //outputs to processor
+    wire RWn;
+    wire [11:0] A;
+    wire [15:0] WD;
+    //instantiating simple cpu lab
+    simpleCPUFinal uut (
+        .CLK(CLK),
+        .reset(reset),
+        .RD(RD),
+        .WD(WD),
+        .A(A),
+        .RWn(RWn)
+    );
+    //reading memory from .dat file... Storing it into a 2D array
+    initial begin 
+        $readmemh("C:/Users/Josh/Dropbox/Computer Engineering Lab/Lab 3/memory.dat", memory);
+    end
+    
+    //Reading or Writing to memory
+    always @* begin
+        if (RWn == 1'b0) begin
+            memory[A] = WD;
+        end
+        else begin
+            RD = memory[A];
+        end
+    end
+    
+    //setting reset equal to high to start program
+    initial begin
+         reset <= 1;
+         #1 reset <= 0;
+    end
+    
+    //making clock pulse every 2 time unit
+    always begin
+       #2 CLK <= !CLK;
+    end
+    
+    initial #225 $finish; // The test will run for a total interval of 50 nanoseconds
+
+endmodule

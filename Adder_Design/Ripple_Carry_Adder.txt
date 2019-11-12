@@ -1,0 +1,160 @@
+/*======= Design Source Code =======*/
+`timescale 1ns / 1ps
+
+module ripple_adder_64
+(
+    input [63:0] A,
+    input [63:0] B,
+    output [63:0] SUM,
+    output CARRY_OUT
+);
+
+    // Create wires to connect each full_adder module to another to create a ripple
+    wire [63:0] CARRY;
+
+    // The first carry is zero
+    assign CARRY[0] = 1'b0;
+
+    // Calling Full Adder Module 64 times (one for each bit). Carry In = the Carry Out of the previous full adder call
+    full_adder op1 (A[0], B[0], CARRY[0], SUM[0], CARRY[1]);
+    full_adder op2 (A[1], B[1],  CARRY[1], SUM[1],  CARRY[2]);
+    full_adder op3 (A[2], B[2],  CARRY[2], SUM[2],  CARRY[3]);
+    full_adder op4 (A[3], B[3], CARRY[3], SUM[3], CARRY[4]);
+    full_adder op5 (A[4], B[4], CARRY[4], SUM[4], CARRY[5]);
+    full_adder op6 (A[5], B[5], CARRY[5], SUM[5], CARRY[6]);
+    full_adder op7 (A[6], B[6], CARRY[6], SUM[6], CARRY[7]);
+    full_adder op8 (A[7], B[7], CARRY[7], SUM[7], CARRY[8]);
+    full_adder op9 (A[8], B[8], CARRY[8], SUM[8], CARRY[9]);
+    full_adder op10 (A[9], B[9], CARRY[9], SUM[9], CARRY[10]);
+    full_adder op11 (A[10], B[10], CARRY[10], SUM[10], CARRY[11]);
+    full_adder op12 (A[11], B[11], CARRY[11], SUM[11], CARRY[12]);
+    full_adder op13 (A[12], B[12], CARRY[12], SUM[12], CARRY[13]);
+    full_adder op14 (A[13], B[13], CARRY[13], SUM[13], CARRY[14]);
+    full_adder op15 (A[14], B[14], CARRY[14], SUM[14], CARRY[15]);
+    full_adder op16 (A[15], B[15], CARRY[15], SUM[15], CARRY[16]);
+    full_adder op17 (A[16], B[16], CARRY[16], SUM[16], CARRY[17]);
+    full_adder op18 (A[17], B[17], CARRY[17], SUM[17], CARRY[18]);
+    full_adder op19 (A[18], B[18], CARRY[18], SUM[18], CARRY[19]);
+    full_adder op20 (A[19], B[19], CARRY[19], SUM[19], CARRY[20]);
+    full_adder op21 (A[20], B[20], CARRY[20], SUM[20], CARRY[21]);
+    full_adder op22 (A[21], B[21], CARRY[21], SUM[21], CARRY[22]);
+    full_adder op23 (A[22], B[22], CARRY[22], SUM[22], CARRY[23]);
+    full_adder op24 (A[23], B[23], CARRY[23], SUM[23], CARRY[24]);
+    full_adder op25 (A[24], B[24], CARRY[24], SUM[24], CARRY[25]);
+    full_adder op26 (A[25], B[25], CARRY[25], SUM[25], CARRY[26]);
+    full_adder op27 (A[26], B[26], CARRY[26], SUM[26], CARRY[27]);
+    full_adder op28 (A[27], B[27], CARRY[27], SUM[27], CARRY[28]);
+    full_adder op29 (A[28], B[28], CARRY[28], SUM[28], CARRY[29]);
+    full_adder op30 (A[29], B[29], CARRY[29], SUM[29], CARRY[30]);
+    full_adder op31 (A[30], B[30], CARRY[30], SUM[30], CARRY[31]);
+    full_adder op32 (A[31], B[31], CARRY[31], SUM[31], CARRY[32]);
+    full_adder op33 (A[32], B[32], CARRY[32], SUM[32], CARRY[33]);
+    full_adder op34 (A[33], B[33], CARRY[33], SUM[33], CARRY[34]);
+    full_adder op35 (A[34], B[34], CARRY[34], SUM[34], CARRY[35]);
+    full_adder op36 (A[35], B[35], CARRY[35], SUM[35], CARRY[36]);
+    full_adder op37 (A[36], B[36], CARRY[36], SUM[36], CARRY[37]);
+    full_adder op38 (A[37], B[37], CARRY[37], SUM[37], CARRY[38]);
+    full_adder op39 (A[38], B[38], CARRY[38], SUM[38], CARRY[39]);
+    full_adder op40 (A[39], B[39], CARRY[39], SUM[39], CARRY[40]);
+    full_adder op41 (A[40], B[40], CARRY[40], SUM[40], CARRY[41]);
+    full_adder op42 (A[41], B[41], CARRY[41], SUM[41], CARRY[42]);
+    full_adder op43 (A[42], B[42], CARRY[42], SUM[42], CARRY[43]);
+    full_adder op44 (A[43], B[43], CARRY[43], SUM[43], CARRY[44]);
+    full_adder op45 (A[44], B[44], CARRY[44], SUM[44], CARRY[45]);
+    full_adder op46 (A[45], B[45], CARRY[45], SUM[45], CARRY[46]);
+    full_adder op47 (A[46], B[46], CARRY[46], SUM[46], CARRY[47]);
+    full_adder op48 (A[47], B[47], CARRY[47], SUM[47], CARRY[48]);
+    full_adder op49 (A[48], B[48], CARRY[48], SUM[48], CARRY[49]);
+    full_adder op50 (A[49], B[49], CARRY[49], SUM[49], CARRY[50]);
+    full_adder op51 (A[50], B[50], CARRY[50], SUM[50], CARRY[51]);
+    full_adder op52 (A[51], B[51], CARRY[51], SUM[51], CARRY[52]);
+    full_adder op53 (A[52], B[52], CARRY[52], SUM[52], CARRY[53]);
+    full_adder op54 (A[53], B[53], CARRY[53], SUM[53], CARRY[54]);
+    full_adder op55 (A[54], B[54], CARRY[54], SUM[54], CARRY[55]);
+    full_adder op56 (A[55], B[55], CARRY[55], SUM[55], CARRY[56]);
+    full_adder op57 (A[56], B[56], CARRY[56], SUM[56], CARRY[57]);
+    full_adder op58 (A[57], B[57], CARRY[57], SUM[57], CARRY[58]);
+    full_adder op59 (A[58], B[58], CARRY[58], SUM[58], CARRY[59]);
+    full_adder op60 (A[59], B[59], CARRY[59], SUM[59], CARRY[60]);
+    full_adder op61 (A[60], B[60], CARRY[60], SUM[60], CARRY[61]);
+    full_adder op62 (A[61], B[61], CARRY[61], SUM[61], CARRY[62]);
+    full_adder op63 (A[62], B[62], CARRY[62], SUM[62], CARRY[63]);
+    full_adder op64 (A[63], B[63], CARRY[63], SUM[63], CARRY_OUT);
+endmodule
+
+module full_adder 
+(
+    input A,
+    input B,
+    input CARRY_IN,
+    output SUM,
+    output CARRY_OUT
+);
+    wire s1, s2, s3;
+    
+    xorGate U1(A,B,s1);
+    andGate U2(s1,CARRY_IN,s2); 
+    andGate U3(A,B,s3);
+    xorGate U4(s1,CARRY_IN,SUM);
+    orGate U5(s2,s3,CARRY_OUT);
+endmodule
+
+
+//Creating individual gate modules... #1 gives each a gate a 1 time unit delay
+module andGate
+(
+    input A,
+    input B,
+    output O
+);
+    assign #1 O = A & B; //O=AB
+endmodule
+
+module orGate
+(
+    input A,
+    input B,
+    output O
+);
+    assign #1 O = A | B; //O=A+B
+endmodule
+
+module xorGate
+(
+    input A,
+    input B,
+    output O
+);
+    assign #1 O = A ^ B; //O=AxorB
+endmodule
+
+/*======= Test Bench Code =======*/
+`timescale 1ns / 1ps
+
+module ripple_adder_64_test;
+    // Inputs
+    reg [63:0] A;
+    reg [63:0] B;
+
+    // Outputs
+    wire [63:0] SUM;
+    wire CARRY_OUT;
+
+    // Instantiate
+    ripple_adder_64 uut 
+    (
+        .A(A),
+        .B(B),
+        .SUM(SUM),
+        .CARRY_OUT(CARRY_OUT)
+    );
+    
+    initial begin
+        //Setting Values For A and B
+        A= 25; B=43;
+        #25 
+        //setting new values for A and B
+        A=74839; B=28476;
+   end
+   initial #50 $finish; // The test will run for a total interval of 50 nanoseconds
+endmodule

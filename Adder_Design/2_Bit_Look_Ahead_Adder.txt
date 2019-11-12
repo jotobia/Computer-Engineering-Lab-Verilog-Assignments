@@ -1,0 +1,155 @@
+/*======= Design Source Code =======*/
+`timescale 1ns / 1ps
+
+ module twoBitLookAhead_64
+(
+    input [63:0] A,
+    input [63:0] B,
+    output [63:0] SUM,
+    output CARRY_OUT
+);
+ 
+    // Create wires to connect each full_adder module to another to create a ripple
+    wire [63:0] CARRY;
+    // The first carry is zero
+    assign CARRY[0] = 1'b0;
+    // Calling Full Adder Module 32 times (one for every 2 bits). Carry In = the Carry Out of the previous adder call
+    twoBitLookAhead op1 ( A[1:0], B[1:0], CARRY[0], SUM[1:0], CARRY[1]);
+    twoBitLookAhead op2 ( A[3:2], B[3:2], CARRY[1], SUM[3:2], CARRY[2]);
+    twoBitLookAhead op3 ( A[5:4], B[5:4], CARRY[2], SUM[5:4], CARRY[3]);
+    twoBitLookAhead op4 ( A[7:6], B[7:6], CARRY[3], SUM[7:6], CARRY[4]);
+    twoBitLookAhead op5 ( A[9:8], B[9:8], CARRY[4], SUM[9:8], CARRY[5]);
+    twoBitLookAhead op6 ( A[11:10], B[11:10], CARRY[5], SUM[11:10], CARRY[6]);
+    twoBitLookAhead op7 ( A[13:12], B[13:12], CARRY[6], SUM[13:12], CARRY[7]);
+    twoBitLookAhead op8 ( A[15:14], B[15:14], CARRY[7], SUM[15:14], CARRY[8]);
+    twoBitLookAhead op9 ( A[17:16], B[17:16], CARRY[8], SUM[17:16], CARRY[9]);
+    twoBitLookAhead op10 ( A[19:18], B[19:18], CARRY[9], SUM[19:18], CARRY[10]);
+    twoBitLookAhead op11 ( A[21:20], B[21:20], CARRY[10], SUM[21:20], CARRY[11]);
+    twoBitLookAhead op12 ( A[23:22], B[23:22], CARRY[11], SUM[23:22], CARRY[12]);
+    twoBitLookAhead op13 ( A[25:24], B[25:24], CARRY[12], SUM[25:24], CARRY[13]);
+    twoBitLookAhead op14 ( A[27:26], B[27:26], CARRY[13], SUM[27:26], CARRY[14]);
+    twoBitLookAhead op15 ( A[29:28], B[29:28], CARRY[14], SUM[29:28], CARRY[15]);
+    twoBitLookAhead op16 ( A[31:30], B[31:30], CARRY[15], SUM[31:30], CARRY[16]);
+    twoBitLookAhead op17 ( A[33:32], B[33:32], CARRY[16], SUM[33:32], CARRY[17]);
+    twoBitLookAhead op18 ( A[35:34], B[35:34], CARRY[17], SUM[35:34], CARRY[18]);
+    twoBitLookAhead op19 ( A[37:36], B[37:36], CARRY[18], SUM[37:36], CARRY[19]);
+    twoBitLookAhead op20 ( A[39:38], B[39:38], CARRY[19], SUM[39:38], CARRY[20]);
+    twoBitLookAhead op21 ( A[41:40], B[41:40], CARRY[20], SUM[41:40], CARRY[21]);
+    twoBitLookAhead op22 ( A[43:42], B[43:42], CARRY[21], SUM[43:42], CARRY[22]);
+    twoBitLookAhead op23 ( A[45:44], B[45:44], CARRY[22], SUM[45:44], CARRY[23]);
+    twoBitLookAhead op24 ( A[47:46], B[47:46], CARRY[23], SUM[47:46], CARRY[24]);
+    twoBitLookAhead op25 ( A[49:48], B[49:48], CARRY[24], SUM[49:48], CARRY[25]);
+    twoBitLookAhead op26 ( A[51:50], B[51:50], CARRY[25], SUM[51:50], CARRY[26]);
+    twoBitLookAhead op27 ( A[53:52], B[53:52], CARRY[26], SUM[53:52], CARRY[27]);
+    twoBitLookAhead op28 ( A[55:54], B[55:54], CARRY[27], SUM[55:54], CARRY[28]);
+    twoBitLookAhead op29 ( A[57:56], B[57:56], CARRY[28], SUM[57:56], CARRY[29]);
+    twoBitLookAhead op30 ( A[59:58], B[59:58], CARRY[29], SUM[59:58], CARRY[30]);
+    twoBitLookAhead op31 ( A[61:60], B[61:60], CARRY[30], SUM[61:60], CARRY[31]);
+    twoBitLookAhead op32 ( A[63:62], B[63:62], CARRY[31], SUM[63:62], CARRY_OUT);
+ endmodule
+
+module twoBitLookAhead
+ (
+    input [1:0]A,
+    input [1:0]B,
+    input C0,
+    output [1:0]SUM,
+    output C2
+ );
+    wire P0,P1,G0,G1,s1,s2,s3,C1;
+    //Half Adder
+    xorGate U1 (A[0],B[0],P0);
+    andGate U2 (A[0],B[0],G0);    
+    xorGate U3 (A[1],B[1],P1);
+    andGate U4 (A[1],B[1],G1);
+    //calculating C2 = G1 + P1G0+P0P1C0
+    threeInputAndGate U5(P0,P1,C0,s1);
+    andGate U6(P1,G0,s2);
+    threeInputOrGate U7(G1,s1,s2,C2);
+    //Calculating C1 = G0 + P0C0
+    andGate U8(P0,C0,s3);
+    orGate U9(G0,s3,C1);
+    //Calculating SUM[i] = A[i] ^ B[i]
+    xorGate U10(P0,C0,SUM[0]);
+    xorGate U11(P1,C1,SUM[1]);
+ endmodule
+
+//Creating individual gate modules... #1 gives each a gate a 1 time unit delay
+module andGate
+(
+    input A,
+    input B,
+    output O
+);
+    assign #1 O = A & B; // O = AB
+endmodule
+
+module threeInputAndGate
+(
+    input A,
+    input B,
+    input C,
+    output O
+);
+    assign #1 O = A & B & C; // O = ABC
+endmodule
+
+module threeInputOrGate
+(
+    input A,
+    input B,
+    input C,
+    output O
+);
+    assign #1 O = A | B | C; //O=A+B+C
+endmodule
+
+module orGate
+(
+    input A,
+    input B,
+    output O
+);
+    assign #1 O = A | B; //O = A+B
+endmodule
+
+module xorGate
+(
+    input A,
+    input B,
+    output O
+);
+    assign #1 O = A ^ B; // O = AxorB
+endmodule
+
+
+/*======= Test Bench Code =======*/
+`timescale 1ns / 1ps
+
+module twoBitLookAhead_tb;
+    // Inputs
+    reg [63:0]A;
+    reg [63:0]B;
+    
+   // Outputs
+   wire [63:0]SUM;
+   wire CARRY_OUT;
+
+    // Instantiate
+    twoBitLookAhead_64 uut
+    (
+        .A(A),
+        .B(B),
+        .SUM(SUM),
+        .CARRY_OUT(CARRY_OUT)
+    );
+
+    initial begin
+        //Setting Values For A and B
+        A= 25; B=43;
+        #25 
+        //setting new values for A and B
+        A=74839; B=28476;
+    end
+   initial #50 $finish; // The test will run for a total interval of 50 nanoseconds
+endmodule
